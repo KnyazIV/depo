@@ -1,1 +1,207 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  «Депо» — дизайн-система «Табло».
+
+  Опора — то, чем комплекс торгует: часы. Интерфейс собран как эмалевое табло:
+  бетонная бумага, хвойные чернила, состояние слота кодируется заливкой, а не тенью.
+
+  Токены разделены на два слоя:
+  1. shadcn-совместимые (--background, --primary, --ring …) — их ждут компоненты в ui/;
+  2. собственные (--paper, --ink, --busy, --res …) — язык этого проекта.
+*/
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Язык проекта */
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-busy: var(--busy);
+  --color-free: var(--free);
+  --color-res: var(--res);
+  --color-res-ink: var(--res-ink);
+  --color-res-wash: var(--res-wash);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  --font-sans: var(--font-golos), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-golos), sans-serif;
+}
+
+:root {
+  --radius: 0.25rem;
+
+  /* Бумага и чернила */
+  --paper: #e4e2dd;
+  --panel: #efedea;
+  --card-raised: #f7f6f3;
+  --ink: #12312b;
+  --ink-soft: #55655f;
+  --line: #cbc8c1;
+  --line-strong: #a6a29a;
+
+  /* Состояния слота */
+  --busy: #9a958c;
+  --free: #1f7a55;
+
+  /*
+    Акцент ресурса. Значение по умолчанию нейтральное — конкретный цвет
+    подставляется атрибутом data-res на контейнере страницы (см. ниже).
+  */
+  --res: #12312b;
+  --res-ink: #12312b;
+  --res-wash: #dcdad4;
+
+  /* shadcn-слой */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--card-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--card-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #f7f6f3;
+  --secondary: var(--panel);
+  --secondary-foreground: var(--ink);
+  --muted: var(--panel);
+  --muted-foreground: var(--ink-soft);
+  --accent: #d9d6cf;
+  --accent-foreground: var(--ink);
+  --destructive: #8f2318;
+  --destructive-foreground: #f7f6f3;
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--res);
+}
+
+/* Акценты ресурсов: заливка + затемнённый вариант для текста по бумаге */
+[data-res="coworking"] {
+  --res: #2b5fd9;
+  --res-ink: #1c46a4;
+  --res-wash: #dbe1f2;
+}
+
+[data-res="banya"] {
+  --res: #c4451c;
+  --res-ink: #973213;
+  --res-wash: #f0ded6;
+}
+
+[data-res="quest"] {
+  --res: #4b3a9e;
+  --res-ink: #3a2c7c;
+  --res-wash: #e0dcef;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-paper text-ink;
+    font-feature-settings: "ss01", "cv01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Заголовки — единственное место, где работает Unbounded */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: var(--res);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--res);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+    Полоса часов. Одна и та же сетка на главной и на странице ресурса:
+    колонка = один шаг сетки, разметка часов идёт отдельной строкой снизу.
+  */
+  .hour-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 2px;
+  }
+
+  /*
+    Состояние часа кодируется заливкой. Четыре значения хорошо различаются
+    даже в полосе шириной 20 пикселей, а рядом всегда есть текстовая сводка —
+    цвет не остаётся единственным носителем смысла.
+  */
+  .hour-cell {
+    height: 100%;
+  }
+
+  .hour-cell[data-state="free"] {
+    background: var(--res);
+  }
+
+  .hour-cell[data-state="busy"] {
+    background: var(--busy);
+  }
+
+  .hour-cell[data-state="past"] {
+    background: var(--line);
+  }
+
+  .hour-cell[data-state="closed"] {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}

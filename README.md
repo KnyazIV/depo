@@ -1,34 +1,191 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Депо — онлайн-бронирование
 
-## Getting Started
+Сайт бронирования комплекса из трёх ресурсов: коворкинг по местам, баня целиком
+и квест-комната сеансами. Заявка уходит администратору в Telegram, он
+подтверждает или отклоняет её кнопкой прямо в чате.
 
-First, run the development server:
+Next.js 16 (App Router) · TypeScript strict · Tailwind 4 · shadcn/ui · Drizzle ·
+PostgreSQL (Neon) · Zod 4 · Vercel
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Что здесь главное
+
+Двойная бронь невозможна не потому, что код проверяет занятость, а потому что
+её запрещает база. Serverless-функции выполняются параллельно, и между «свободно
+ли время?» и вставкой всегда может вклиниться другой запрос. Поэтому в таблице
+`bookings` стоит EXCLUDE-constraint:
+
+```sql
+EXCLUDE USING gist (
+  resource_id WITH =,
+  unit_id     WITH =,
+  blocked_period WITH &&
+) WHERE (status IN ('pending', 'confirmed'))
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение просто пытается вставить строку и переводит ошибку `23P01` в понятный
+ответ 409. Проверено тестом: двадцать одновременных заявок на один слот — ровно
+одна проходит (`tests/concurrency.test.ts`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`unit_id` объявлен `NOT NULL` намеренно. При NULL сравнение `unit_id WITH =`
+давало бы UNKNOWN вместо TRUE, и для бани с квестом constraint не срабатывал бы
+вовсе. Поэтому у каждого ресурса есть хотя бы одна единица: у коворкинга это
+рабочие места, у бани и квеста — по одной служебной.
 
-## Learn More
+## Запуск
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+cp .env.example .env.local     # и заполнить, см. ниже
+pnpm gen:secrets               # сгенерирует секреты для .env.local
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Переменные окружения
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Переменная                | Зачем                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| `DATABASE_URL`            | Pooled-строка подключения Neon (в хосте есть `-pooler`)                                |
+| `DATABASE_URL_UNPOOLED`   | Прямая строка, мимо пулера. По ней идут миграции. Не задана — возьмётся `DATABASE_URL` |
+| `TEST_DATABASE_URL`       | Отдельная ветка Neon для интеграционных тестов. Без неё они пропускаются               |
+| `TELEGRAM_BOT_TOKEN`      | Токен бота от [@BotFather](https://t.me/BotFather)                                     |
+| `TELEGRAM_ADMIN_CHAT_ID`  | Куда слать заявки: личный чат или группа (у групп id отрицательный)                    |
+| `TELEGRAM_ADMIN_IDS`      | Кому можно нажимать кнопки, через запятую                                              |
+| `TELEGRAM_WEBHOOK_SECRET` | Сверяется с заголовком `X-Telegram-Bot-Api-Secret-Token`                               |
+| `CRON_SECRET`             | Защита `/api/cron/expire`                                                              |
+| `ADMIN_PASSWORD`          | Пароль к `/admin`, логин `admin`                                                       |
+| `IP_HASH_SALT`            | Соль для хэша IP в rate limit. Сырые IP не хранятся                                    |
+| `NEXT_PUBLIC_SITE_URL`    | Публичный адрес. На Vercel можно не задавать                                           |
 
-## Deploy on Vercel
+Проверка переменных ленивая и по группам: отсутствие токена Telegram не ломает
+календарь, а отсутствие `CRON_SECRET` — приём заявок.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Настройки ресурсов
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Цены, часы работы, буферы, количество мест и горизонт записи живут в таблицах
+`resources`, `resource_units`, `resource_hours` — не в коде. Чтобы их поменять,
+правьте `scripts/seed.ts` и выполняйте `pnpm db:seed` (скрипт идемпотентный).
+
+Сейчас засеяно:
+
+|              | Коворкинг       | Баня           | Квест         |
+| ------------ | --------------- | -------------- | ------------- |
+| Единицы      | 12 мест         | целиком        | 1 комната     |
+| Часы         | 09:00–21:00     | 10:00–02:00    | 12:00–22:00   |
+| Длительность | от 1 ч, шаг 1 ч | 2–6 ч, шаг 1 ч | сеанс 60 мин  |
+| Перерыв      | нет             | 30 мин         | 15 мин        |
+| Гостей       | —               | 2–8            | 2–6           |
+| Цена         | 350 ₽/ч         | 3 500 ₽/ч      | 4 500 ₽/сеанс |
+
+Общее для всех: горизонт 30 дней, минимум 2 часа до начала, заявка держит слот
+30 минут.
+
+Разовые закрытия (санитарный день, корпоратив) добавляются строкой в
+`resource_closures` — код их учитывает и в календаре, и при вставке.
+
+## Адреса
+
+| Страница          |                                                            |
+| ----------------- | ---------------------------------------------------------- |
+| `/`               | Табло на сегодня по всем ресурсам                          |
+| `/[slug]`         | `/coworking`, `/banya`, `/quest` — календарь, слоты, форма |
+| `/zayavka/[code]` | Статус заявки, обновляется сам                             |
+| `/policy`         | Обработка персональных данных                              |
+| `/admin`          | Список заявок, Basic Auth через `proxy.ts`                 |
+
+| API                                 |                                                   |
+| ----------------------------------- | ------------------------------------------------- |
+| `GET /api/availability?slug=&date=` | Свободные и занятые слоты. Чужих ПДн в ответе нет |
+| `POST /api/bookings`                | Заявка. 201 / 409 занято / 422 / 429 лимит        |
+| `GET /api/bookings/[code]`          | Статус заявки по коду                             |
+| `POST /api/telegram/webhook`        | Нажатия кнопок администратора                     |
+| `GET /api/cron/expire`              | Крон Vercel каждые 5 минут                        |
+
+## Деплой на Vercel
+
+1. Импортируйте репозиторий в Vercel.
+2. Storage → Marketplace → Neon. Переменная `DATABASE_URL` появится сама.
+3. Добавьте остальные переменные из таблицы выше (`pnpm gen:secrets` даст
+   значения для секретов).
+4. После первого деплоя примените миграции: `pnpm db:migrate` с боевым
+   `DATABASE_URL`, затем `pnpm db:seed`.
+5. Подпишите бота на вебхук: `pnpm telegram:setup https://ваш-домен`.
+6. Проверьте, что в Project → Cron Jobs появилась задача из `vercel.json`.
+
+Чтобы узнать `TELEGRAM_ADMIN_CHAT_ID` и свой id: напишите боту (или добавьте его
+в группу и напишите там), затем откройте
+`https://api.telegram.org/bot<TOKEN>/getUpdates`.
+
+## Разработка
+
+```bash
+pnpm dev          # дев-сервер
+pnpm build        # продовая сборка
+pnpm lint         # ESLint
+pnpm typecheck    # tsc --noEmit
+pnpm test         # vitest
+pnpm format       # prettier
+pnpm db:studio    # Drizzle Studio
+pnpm db:reset     # снести схему целиком (нужен --yes)
+pnpm db:unstick   # снять зависшие транзакции
+```
+
+Скриптам можно передать `--test`, чтобы они работали с `TEST_DATABASE_URL`:
+`pnpm db:migrate --test && pnpm db:seed --test`.
+
+### Миграции
+
+`scripts/migrate.ts` — собственный раннер вместо мигратора Drizzle. HTTP-драйвер
+не даёт интерактивных транзакций, поэтому штатный мигратор шлёт операторы по
+одному и каждый коммитит отдельно: упавшая на середине миграция оставляет
+половину объектов и больше не накатывается. Здесь каждый файл уходит одним
+батчем через `sql.transaction()` — либо целиком, либо никак. Отметка о
+применении входит в тот же батч, так что журнал не расходится с базой.
+
+Расширение `btree_gist` ставится до основной пачки и с повтором: на свежем
+проекте Neon первая установка расширения перезапускает compute и рвёт связь.
+
+### Как устроен код
+
+```
+src/
+  app/            страницы и route handlers
+  components/     ui/ — shadcn, остальное — доменные компоненты
+  db/             схема Drizzle, два драйвера, миграции
+  domain/         слоты, цены, правила, создание броней, уведомления
+  lib/            время, env, Telegram, rate limit, Zod-схемы
+scripts/          миграции, seed, настройка бота, генерация секретов
+tests/            доменные тесты и интеграционный на конкурентность
+```
+
+`domain/slots.ts` — чистый модуль без обращений к базе и системным часам. Его
+используют и сервер, и браузер, поэтому календарь не может разойтись с ответом
+API.
+
+Один драйвер — HTTP. Интерактивные транзакции он не умеет, и они не нужны:
+бронь вставляется единственным оператором, а его атомарность обеспечивает сам
+Postgres. Для serverless это дешевле пула поверх WebSocket — нет рукопожатия
+на холодном старте.
+
+Все обращения к базе, кроме самой вставки брони, обёрнуты в `retryTransient`:
+HTTP-драйвер изредка натыкается на оборванное TLS-соединение, а повторить
+идемпотентное чтение ничего не стоит. У вставки свой путь: код заявки
+генерируется один раз и работает ключом идемпотентности — если ответ потерялся,
+код спрашивает базу, долетела ли строка, и не создаёт вторую.
+
+Уведомление в Telegram отправляется через `after()` — уже после ответа клиенту.
+Человек видит «заявка принята» сразу, не дожидаясь чужого API.
+
+### Rate limit
+
+Лимит 5 заявок за 10 минут на IP, хранилище — таблица `rate_limit_hits`.
+Postgres вместо Upstash потому, что база уже есть и уже на горячем пути запроса:
+лишний вендор и сетевой хоп не окупаются при таком объёме. Сырой IP не
+сохраняется, только HMAC-хэш с `IP_HASH_SALT`, старые отметки чистит крон.
+
+### Перед запуском на реального клиента
+
+- Реквизиты, адрес и телефоны — в `src/lib/site.ts`.
+- Текст политики в `src/app/policy/page.tsx` должен вычитать оператор.
+- Цены и часы — в `scripts/seed.ts`.

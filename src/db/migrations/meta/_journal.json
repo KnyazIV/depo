@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789659787500,
+      "tag": "0000_lying_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789659794500,
+      "tag": "0001_booking_exclusion",
+      "breakpoints": true
+    }
+  ]
+}
