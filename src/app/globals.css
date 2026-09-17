@@ -68,21 +68,14 @@
   --line-strong: #b3a78c;
 
   /*
-    Рельсовый путь. Идёт вертикально, колея по бокам от колонки контента.
+    Волна — плитка фоновой фактуры.
 
-    Пропорции взяты у настоящего пути: шпала заметно длиннее колеи и выходит
-    за рельсы, шаг шпал мелкий, а сами рельсы темнее шпал — на путях главные
-    именно две непрерывные нитки металла. В местах, где шпала проходит под
-    рельсом, он темнеет: это подкладка.
+    Один период на 64 пикселя, ряды через 22. Плитка бесшовная по горизонтали:
+    кривая входит и выходит на одной высоте, поэтому стыков не видно.
+    Цвет задан числом — data-URI не видит переменных; при смене чернил
+    поправить и здесь.
   */
-  --rail-width: 7px;
-  --rail-inset: 4px;
-  --rail-color: rgb(18 49 43 / 0.26);
-  --sleeper-color: rgb(18 49 43 / 0.1);
-  --sleeper-plate: rgb(18 49 43 / 0.12);
-  --sleeper-height: 15px;
-  --sleeper-step: 46px;
-  --sleeper-overhang: 34px;
+  --wave: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='64'%20height='22'%3E%3Cpath%20d='M0%2011%20Q16%201%2032%2011%20T64%2011'%20fill='none'%20stroke='%2312312b'%20stroke-width='1.5'%20stroke-opacity='.13'/%3E%3C/svg%3E");
 
   /* Состояния слота */
   --busy: #a2977f;
@@ -149,8 +142,6 @@
 
   body {
     @apply bg-paper text-ink;
-    /* Полоса пути выходит за колонку на всю ширину экрана — гасим её вылет. */
-    overflow-x: clip;
     font-feature-settings: "ss01", "cv01";
     text-rendering: optimizeLegibility;
   }
@@ -225,37 +216,16 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Шпалы: одна горизонтальная полоса на шаг, повтор сверху вниз. */
-  .rail-sleepers {
-    position: absolute;
-    inset-block: 0;
-    left: calc(-1 * var(--sleeper-overhang));
-    right: calc(-1 * var(--sleeper-overhang));
-    background-image: repeating-linear-gradient(
-      to bottom,
-      var(--sleeper-color) 0 var(--sleeper-height),
-      transparent var(--sleeper-height) var(--sleeper-step)
-    );
-  }
+  /*
+    Фактура страницы.
 
-  /* Нитка рельса. Градиент поверх заливки — подкладки на каждой шпале. */
-  .rail-line {
-    position: absolute;
-    inset-block: 0;
-    width: var(--rail-width);
-    background-color: var(--rail-color);
-    background-image: repeating-linear-gradient(
-      to bottom,
-      var(--sleeper-plate) 0 var(--sleeper-height),
-      transparent var(--sleeper-height) var(--sleeper-step)
-    );
-  }
-
-  .rail-line-left {
-    left: var(--rail-inset);
-  }
-
-  .rail-line-right {
-    right: var(--rail-inset);
+    Волны затухают по диагонали: в левом верхнем углу они видны, к правому
+    нижнему сходят на нет. Затухание сделано маской, а не наложением цвета
+    бумаги — маска не зависит от того, что под слоем, и переживёт смену фона.
+  */
+  .paper-texture {
+    background-image: var(--wave);
+    -webkit-mask-image: linear-gradient(to bottom right, #000 0%, #000 12%, transparent 72%);
+    mask-image: linear-gradient(to bottom right, #000 0%, #000 12%, transparent 72%);
   }
 }
