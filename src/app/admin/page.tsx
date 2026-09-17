@@ -44,7 +44,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     <>
       <SiteHeader />
 
-      <main className="mx-auto max-w-4xl px-4 py-10">
+      <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="flex items-baseline justify-between gap-4">
           <h1 className="font-display text-3xl">Заявки</h1>
           <form action={signOut}>

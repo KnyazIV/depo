@@ -68,19 +68,21 @@
   --line-strong: #b3a78c;
 
   /*
-    Рельсовый путь — плитка для полосы `.rail-track`.
+    Рельсовый путь. Идёт вертикально, колея по бокам от колонки контента.
 
-    Повторяется только по горизонтали, поэтому путь один и тянется от края до
-    края. Внутри плитки: шпала, две подкладки в местах стыка и две нитки
-    рельсов. Колея 54 пикселя, шпала вдвое длиннее — пропорции настоящего
-    пути, по ним он и опознаётся.
-
-    Нарисовано в SVG, а не градиентами: шпалу нужно держать в пределах колеи,
-    а repeating-linear-gradient так не умеет — он тянется через всю полосу.
-    Цвет задан числом, потому что data-URI не видит переменных; при смене
-    чернил его надо поправить и здесь.
+    Пропорции взяты у настоящего пути: шпала заметно длиннее колеи и выходит
+    за рельсы, шаг шпал мелкий, а сами рельсы темнее шпал — на путях главные
+    именно две непрерывные нитки металла. В местах, где шпала проходит под
+    рельсом, он темнеет: это подкладка.
   */
-  --rails: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='30'%20height='150'%3E%3Cg%20fill='%2312312b'%3E%3Crect%20x='4'%20y='26'%20width='12'%20height='98'%20opacity='.10'/%3E%3Crect%20x='1'%20y='41'%20width='18'%20height='14'%20opacity='.07'/%3E%3Crect%20x='1'%20y='95'%20width='18'%20height='14'%20opacity='.07'/%3E%3Crect%20y='44'%20width='30'%20height='7'%20opacity='.34'/%3E%3Crect%20y='99'%20width='30'%20height='7'%20opacity='.34'/%3E%3C/g%3E%3C/svg%3E");
+  --rail-width: 7px;
+  --rail-inset: 4px;
+  --rail-color: rgb(18 49 43 / 0.26);
+  --sleeper-color: rgb(18 49 43 / 0.1);
+  --sleeper-plate: rgb(18 49 43 / 0.12);
+  --sleeper-height: 15px;
+  --sleeper-step: 46px;
+  --sleeper-overhang: 34px;
 
   /* Состояния слота */
   --busy: #a2977f;
@@ -223,11 +225,37 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Полоса пути: одна плитка в высоту, повтор по горизонтали. */
-  .rail-track {
-    height: 150px;
-    background-image: var(--rails);
-    background-repeat: repeat-x;
-    background-position: center;
+  /* Шпалы: одна горизонтальная полоса на шаг, повтор сверху вниз. */
+  .rail-sleepers {
+    position: absolute;
+    inset-block: 0;
+    left: calc(-1 * var(--sleeper-overhang));
+    right: calc(-1 * var(--sleeper-overhang));
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--sleeper-color) 0 var(--sleeper-height),
+      transparent var(--sleeper-height) var(--sleeper-step)
+    );
+  }
+
+  /* Нитка рельса. Градиент поверх заливки — подкладки на каждой шпале. */
+  .rail-line {
+    position: absolute;
+    inset-block: 0;
+    width: var(--rail-width);
+    background-color: var(--rail-color);
+    background-image: repeating-linear-gradient(
+      to bottom,
+      var(--sleeper-plate) 0 var(--sleeper-height),
+      transparent var(--sleeper-height) var(--sleeper-step)
+    );
+  }
+
+  .rail-line-left {
+    left: var(--rail-inset);
+  }
+
+  .rail-line-right {
+    right: var(--rail-inset);
   }
 }

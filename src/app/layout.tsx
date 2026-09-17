@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Golos_Text, Unbounded } from "next/font/google";
 
+import { RailTrack } from "@/components/site/rail-track";
 import { Toaster } from "@/components/ui/sonner";
 import { site, siteUrl } from "@/lib/site";
 
@@ -47,7 +48,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ru" className={`${golos.variable} ${unbounded.variable}`}>
       <body className="min-h-dvh antialiased">
-        {children}
+        <RailTrack />
+        {/* Содержимое едет поверх путей: без явного слоя fixed-полоса
+            перекрыла бы его, а отрицательный z-index спрятал бы её под
+            заливку body. */}
+        <div className="relative z-10">{children}</div>
         <Toaster position="top-center" />
       </body>
     </html>
