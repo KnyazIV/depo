@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Депо">
+  <rect width="32" height="32" rx="5" fill="#12312b" />
+  <g fill="#ece4d3">
+    <rect x="10.5" y="5.5" width="12.5" height="4.2" />
+    <rect x="18.4" y="5.5" width="4.6" height="15" />
+    <polygon points="10.5,5.5 15.1,5.5 11.6,20.5 7,20.5" />
+    <rect x="4" y="20.5" width="24" height="3.9" />
+    <rect x="4.6" y="24.4" width="4.2" height="2.1" />
+    <rect x="23.2" y="24.4" width="4.2" height="2.1" />
+  </g>
+</svg>

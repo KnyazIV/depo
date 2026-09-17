@@ -2,13 +2,16 @@ import Link from "next/link";
 
 import { site } from "@/lib/site";
 
+import { Logo } from "./logo";
+
 /** Шапка внутренних страниц. На главной логотип работает героем и живёт в самой странице. */
 export function SiteHeader() {
   return (
     <header className="border-line border-b">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
-        <Link href="/" className="font-display text-xl">
-          ДЕПО
+        <Link href="/" className="flex items-center gap-2.5">
+          <Logo className="text-ink size-7" />
+          <span className="font-display text-xl">ДЕПО</span>
         </Link>
         <a
           href={`tel:${site.phone.replace(/[^\d+]/g, "")}`}

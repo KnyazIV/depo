@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { allowedDurations } from "@/domain/slots";
 import type { AvailabilityResponse, DayAvailability, ResourceConfig } from "@/domain/types";
-import { type DateKey, formatDuration, shiftDateKey, utcToDateKey } from "@/lib/time";
+import { type DateKey, formatDuration, formatMonth, shiftDateKey, utcToDateKey } from "@/lib/time";
 
 import { BookingForm } from "./booking-form";
 import { DateRibbon } from "./date-ribbon";
@@ -92,12 +92,13 @@ export function BookingPanel({
     };
   }, [date, load]);
 
-  const dates = useMemo(() => {
-    const today = utcToDateKey(new Date(day.now), resource.timezone);
-    return Array.from({ length: resource.horizonDays + 1 }, (_, index) =>
-      shiftDateKey(today, index),
-    );
-  }, [day.now, resource.horizonDays, resource.timezone]);
+  const today = utcToDateKey(new Date(day.now), resource.timezone);
+
+  const dates = useMemo(
+    () =>
+      Array.from({ length: resource.horizonDays + 1 }, (_, index) => shiftDateKey(today, index)),
+    [today, resource.horizonDays],
+  );
 
   // Слот считаем выбранным, только пока он свободен: если время увели между
   // рендерами, форма исчезнет сама, без синхронизации состояний в эффекте.
@@ -126,7 +127,13 @@ export function BookingPanel({
   return (
     <div className="space-y-9">
       <section className="space-y-3">
-        <SectionTitle>Выберите день</SectionTitle>
+        <div className="flex items-baseline justify-between gap-3">
+          <SectionTitle>Выберите день</SectionTitle>
+          {/* Месяц: в ленте видны только числа, и на переходе он теряется. */}
+          <span className="text-ink-soft text-sm first-letter:uppercase">
+            {formatMonth(date, resource.timezone, today)}
+          </span>
+        </div>
         <DateRibbon dates={dates} value={date} timezone={resource.timezone} onChange={pickDate} />
       </section>
 

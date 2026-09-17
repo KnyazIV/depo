@@ -58,16 +58,22 @@
   --radius: 0.25rem;
 
   /* Бумага и чернила */
-  --paper: #e4e2dd;
-  --panel: #efedea;
-  --card-raised: #f7f6f3;
+  --paper: #ece4d3;
+  --panel: #f3ede0;
+  --card-raised: #f9f5ec;
   --ink: #12312b;
-  --ink-soft: #55655f;
-  --line: #cbc8c1;
-  --line-strong: #a6a29a;
+  --ink-soft: #5a6659;
+  --line: #d6ccb6;
+  --line-strong: #b3a78c;
+
+  /* Разлиновка фона — как на чертёжной бумаге */
+  --grid: rgb(18 49 43 / 0.045);
+  --grid-major: rgb(18 49 43 / 0.075);
+  --grid-step: 32px;
+  --grid-major-step: 128px;
 
   /* Состояния слота */
-  --busy: #9a958c;
+  --busy: #a2977f;
   --free: #1f7a55;
 
   /*
@@ -76,7 +82,7 @@
   */
   --res: #12312b;
   --res-ink: #12312b;
-  --res-wash: #dcdad4;
+  --res-wash: #e2dac7;
 
   /* shadcn-слой */
   --background: var(--paper);
@@ -91,7 +97,7 @@
   --secondary-foreground: var(--ink);
   --muted: var(--panel);
   --muted-foreground: var(--ink-soft);
-  --accent: #d9d6cf;
+  --accent: #e2d9c4;
   --accent-foreground: var(--ink);
   --destructive: #8f2318;
   --destructive-foreground: #f7f6f3;
@@ -104,19 +110,19 @@
 [data-res="coworking"] {
   --res: #2b5fd9;
   --res-ink: #1c46a4;
-  --res-wash: #dbe1f2;
+  --res-wash: #dcddec;
 }
 
 [data-res="banya"] {
   --res: #c4451c;
   --res-ink: #973213;
-  --res-wash: #f0ded6;
+  --res-wash: #edd9c8;
 }
 
 [data-res="quest"] {
   --res: #4b3a9e;
   --res-ink: #3a2c7c;
-  --res-wash: #e0dcef;
+  --res-wash: #e0d9e4;
 }
 
 @layer base {
@@ -129,8 +135,27 @@
     scrollbar-gutter: stable;
   }
 
+  /*
+    Фон — чертёжная бумага: мелкая клетка и усиленная линия каждые четыре шага.
+    Четыре градиента вместо картинки: ничего не грузится, масштабируется без
+    потерь и не спорит с текстом. Ритм тот же, что у полосы часов.
+  */
   body {
     @apply bg-paper text-ink;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        var(--grid-major) 0 1px,
+        transparent 1px var(--grid-major-step)
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        var(--grid-major) 0 1px,
+        transparent 1px var(--grid-major-step)
+      ),
+      repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px var(--grid-step)),
+      repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px var(--grid-step));
+    background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
     text-rendering: optimizeLegibility;
   }

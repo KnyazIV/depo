@@ -6,7 +6,7 @@ import { SiteFooter, SiteHeader } from "@/components/site/chrome";
 import { getDayAvailability } from "@/domain/availability";
 import { formatPriceRate } from "@/domain/pricing";
 import { getResourceBySlug } from "@/domain/resources";
-import { utcToDateKey } from "@/lib/time";
+import { isDateKey, utcToDateKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +22,20 @@ export async function generateMetadata({ params }: PageProps<"/[slug]">): Promis
   };
 }
 
-export default async function ResourcePage({ params }: PageProps<"/[slug]">) {
+export default async function ResourcePage({ params, searchParams }: PageProps<"/[slug]">) {
   const { slug } = await params;
   const resource = await getResourceBySlug(slug);
 
   if (!resource) notFound();
 
   const now = new Date();
-  const initial = await getDayAvailability(resource, utcToDateKey(now, resource.timezone), now);
+  const { date } = await searchParams;
+
+  // Дату можно принести с главной — тогда страница открывается сразу на ней.
+  const requested =
+    typeof date === "string" && isDateKey(date) ? date : utcToDateKey(now, resource.timezone);
+
+  const initial = await getDayAvailability(resource, requested, now);
 
   return (
     <div data-res={resource.slug}>

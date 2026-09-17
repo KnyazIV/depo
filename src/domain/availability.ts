@@ -4,7 +4,14 @@ import { and, eq, gt, inArray, or, sql } from "drizzle-orm";
 
 import { db, retryTransient } from "@/db/client";
 import { HOLDING_STATUSES, bookings, resourceClosures } from "@/db/schema";
-import { type DateKey, formatTime, utcToDateKey, weekdayInZone } from "@/lib/time";
+import {
+  type DateKey,
+  daysBetween,
+  formatTime,
+  shiftDateKey,
+  utcToDateKey,
+  weekdayInZone,
+} from "@/lib/time";
 
 import { getHours, listUnits, type WorkingHoursRow } from "./resources";
 import { type HourCell, buildDayAvailability, buildHourStrip, workingWindow } from "./slots";
@@ -143,7 +150,11 @@ export type BoardRow = {
 
 export type Board = {
   date: DateKey;
+  /** Сегодняшняя дата в поясе комплекса — по ней подписывается заголовок. */
+  today: DateKey;
   timezone: string;
+  /** До какой даты открыта запись. */
+  lastDate: DateKey;
   axis: { fromMin: number; toMin: number };
   rows: BoardRow[];
 };
@@ -155,16 +166,35 @@ function minutesOfDay(date: Date, timeZone: string): number {
 }
 
 /**
- * Табло на сегодня — то, с чего начинается главная.
+ * Табло — то, с чего начинается главная.
  *
  * Все ресурсы лежат на одной оси часов, поэтому их полосы можно сравнивать
  * взглядом. В ответ уходят только состояния часов: ни имён, ни телефонов.
+ *
+ * День передаётся снаружи: главная умеет листать даты, а не только показывать
+ * сегодняшний день.
  */
-export async function getTodayBoard(list: ResourceConfig[], now = new Date()): Promise<Board> {
+export async function getBoard(
+  list: ResourceConfig[],
+  date?: DateKey,
+  now = new Date(),
+): Promise<Board> {
   const timezone = list[0]?.timezone ?? "Europe/Moscow";
-  const days = await Promise.all(
-    list.map((resource) => loadDay(resource, utcToDateKey(now, resource.timezone), now)),
-  );
+  const today = utcToDateKey(now, timezone);
+  const horizon = Math.max(0, ...list.map((resource) => resource.horizonDays));
+  const lastDate = shiftDateKey(today, horizon);
+
+  // Дату можно подсунуть в адресе руками, поэтому подрезаем её по горизонту:
+  // показывать прошлое или год вперёд бессмысленно.
+  const requested = date ?? today;
+  const target =
+    daysBetween(today, requested) < 0
+      ? today
+      : daysBetween(requested, lastDate) < 0
+        ? lastDate
+        : requested;
+
+  const days = await Promise.all(list.map((resource) => loadDay(resource, target, now)));
 
   // Ось общая: от самого раннего открытия до самого позднего закрытия.
   const windows = days.map((day) => day.hours).filter((hours) => hours !== null);
@@ -195,7 +225,7 @@ export async function getTodayBoard(list: ResourceConfig[], now = new Date()): P
     };
   });
 
-  return { date: utcToDateKey(now, timezone), timezone, axis, rows };
+  return { date: target, today, timezone, lastDate, axis, rows };
 }
 
 export { holdingBookings };

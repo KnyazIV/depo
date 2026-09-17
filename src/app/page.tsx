@@ -1,14 +1,18 @@
 import { TodayBoard } from "@/components/board/board";
 import { SiteFooter } from "@/components/site/chrome";
-import { getTodayBoard } from "@/domain/availability";
+import { getBoard } from "@/domain/availability";
 import { listResources } from "@/domain/resources";
 import { site } from "@/lib/site";
+import { isDateKey } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  const { date } = await searchParams;
+  const requested = typeof date === "string" && isDateKey(date) ? date : undefined;
+
   const resources = await listResources();
-  const board = await getTodayBoard(resources);
+  const board = await getBoard(resources, requested);
 
   return (
     <>

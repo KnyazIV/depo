@@ -79,6 +79,19 @@ export function formatDay(dateKey: DateKey, timeZone: string, today: DateKey): s
   return formatInTimeZone(date, timeZone, sameYear ? "d MMMM" : "d MMMM yyyy", { locale: ru });
 }
 
+/** «пятница» — полное название дня недели. */
+export function formatWeekdayLong(dateKey: DateKey, timeZone: string): string {
+  const date = zonedMinutesToUtc(dateKey, 12 * 60, timeZone);
+  return formatInTimeZone(date, timeZone, "EEEE", { locale: ru });
+}
+
+/** «сентябрь» или «январь 2027», если год не текущий. */
+export function formatMonth(dateKey: DateKey, timeZone: string, today: DateKey): string {
+  const date = zonedMinutesToUtc(dateKey, 12 * 60, timeZone);
+  const sameYear = dateKey.slice(0, 4) === today.slice(0, 4);
+  return formatInTimeZone(date, timeZone, sameYear ? "LLLL" : "LLLL yyyy", { locale: ru });
+}
+
 /** «ср» — короткий день недели для ленты дат. */
 export function formatWeekdayShort(dateKey: DateKey, timeZone: string): string {
   const date = zonedMinutesToUtc(dateKey, 12 * 60, timeZone);
