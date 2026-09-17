@@ -8,6 +8,9 @@ import type { SlotView } from "@/domain/types";
  * Ячейка не карточка: у неё нет тени и скруглений «как у всего остального».
  * Состояние читается заливкой и насыщенностью текста, а для тех, кто цвет не
  * различает, у каждой недоступной ячейки есть словесная подпись.
+ *
+ * Недоступные ячейки залиты цветом бумаги, а не прозрачны: сквозь прозрачные
+ * просвечивала фоновая штриховка и сетка начинала рябить.
  */
 
 const STATE_HINT: Record<string, string> = {
@@ -50,7 +53,7 @@ export function SlotGrid({
                 ? "border-res bg-res text-white"
                 : free
                   ? "border-line-strong bg-card text-ink hover:border-res hover:text-res-ink"
-                  : "border-line text-busy bg-transparent"
+                  : "border-line bg-paper text-busy"
             }`}
           >
             {slot.label}

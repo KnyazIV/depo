@@ -35,6 +35,7 @@
 
   /* Язык проекта */
   --color-paper: var(--paper);
+  --color-panel: var(--panel);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-line: var(--line);
@@ -59,18 +60,16 @@
 
   /* Бумага и чернила */
   --paper: #ece4d3;
-  --panel: #f3ede0;
-  --card-raised: #f9f5ec;
+  --panel: #f7f2e8;
+  --card-raised: #fdfaf4;
   --ink: #12312b;
   --ink-soft: #5a6659;
   --line: #d6ccb6;
   --line-strong: #b3a78c;
 
-  /* Разлиновка фона — как на чертёжной бумаге */
-  --grid: rgb(18 49 43 / 0.045);
-  --grid-major: rgb(18 49 43 / 0.075);
-  --grid-step: 32px;
-  --grid-major-step: 128px;
+  /* Штриховка фона — как на разрезе в чертеже */
+  --hatch: rgb(18 49 43 / 0.06);
+  --hatch-step: 12px;
 
   /* Состояния слота */
   --busy: #a2977f;
@@ -136,25 +135,19 @@
   }
 
   /*
-    Фон — чертёжная бумага: мелкая клетка и усиленная линия каждые четыре шага.
-    Четыре градиента вместо картинки: ничего не грузится, масштабируется без
-    потерь и не спорит с текстом. Ритм тот же, что у полосы часов.
+    Фон — диагональная штриховка, как на разрезе в чертеже.
+
+    Прямая клетка здесь не годилась: её линии шли параллельно краям панелей и
+    читались как их продолжение. Диагональ не совпадает ни с одной гранью
+    интерфейса, поэтому остаётся фактурой бумаги и ничего не подпирает.
   */
   body {
     @apply bg-paper text-ink;
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        var(--grid-major) 0 1px,
-        transparent 1px var(--grid-major-step)
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        var(--grid-major) 0 1px,
-        transparent 1px var(--grid-major-step)
-      ),
-      repeating-linear-gradient(to right, var(--grid) 0 1px, transparent 1px var(--grid-step)),
-      repeating-linear-gradient(to bottom, var(--grid) 0 1px, transparent 1px var(--grid-step));
+    background-image: repeating-linear-gradient(
+      45deg,
+      var(--hatch) 0 1.5px,
+      transparent 1.5px var(--hatch-step)
+    );
     background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
     text-rendering: optimizeLegibility;
