@@ -6,8 +6,8 @@ import { type Decision, decideBooking } from "@/domain/booking";
 import { updateBookingMessage } from "@/domain/notify";
 import { getResourceBySlug } from "@/domain/resources";
 import { isConfigured, telegramEnv } from "@/lib/env";
-import { site, siteUrl } from "@/lib/site";
-import { getWebhookInfo, setWebhook } from "@/lib/telegram";
+import { siteUrl } from "@/lib/site";
+import { getWebhookInfo } from "@/lib/telegram";
 
 /**
  * Решение по заявке из админки.
@@ -86,24 +86,4 @@ export async function readWebhookState(): Promise<WebhookState> {
       error: error instanceof Error ? error.message : String(error),
     };
   }
-}
-
-/** Подписывает бота на вебхук этого сайта. */
-export async function connectBot() {
-  if (!isConfigured(telegramEnv)) return;
-
-  const url = `${siteUrl()}/api/telegram/webhook`;
-
-  if (!url.startsWith("https://")) {
-    console.error(`[telegram] ${site.name}: вебхук требует https, а адрес ${url}`);
-    return;
-  }
-
-  try {
-    await setWebhook({ url, secret: telegramEnv().TELEGRAM_WEBHOOK_SECRET });
-  } catch (error) {
-    console.error("[telegram] не удалось подписать бота", error);
-  }
-
-  revalidatePath("/admin");
 }

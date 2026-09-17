@@ -7,7 +7,7 @@ import { formatPrice } from "@/domain/pricing";
 import { formatDateTime, formatDuration, formatTime } from "@/lib/time";
 import { formatPhoneMask } from "@/lib/validation/booking";
 
-import { type WebhookState, connectBot, decide, readWebhookState } from "./actions";
+import { type WebhookState, decide, readWebhookState } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -196,7 +196,7 @@ function TelegramPanel({ state }: { state: WebhookState }) {
 
 function ConnectButton({ label }: { label: string }) {
   return (
-    <form action={connectBot}>
+    <form method="post" action="/admin/connect">
       <button className="border-line-strong mt-1 border px-4 py-2 text-sm">{label}</button>
     </form>
   );
