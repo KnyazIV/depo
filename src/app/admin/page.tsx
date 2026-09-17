@@ -8,6 +8,7 @@ import { formatDateTime, formatDuration, formatTime } from "@/lib/time";
 import { formatPhoneMask } from "@/lib/validation/booking";
 
 import { type WebhookState, decide, readWebhookState } from "./actions";
+import { signOut } from "./login/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,14 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       <SiteHeader />
 
       <main className="mx-auto max-w-4xl px-4 py-10">
-        <h1 className="font-display text-3xl">Заявки</h1>
+        <div className="flex items-baseline justify-between gap-4">
+          <h1 className="font-display text-3xl">Заявки</h1>
+          <form action={signOut}>
+            <button className="decoration-line hover:decoration-ink text-sm underline underline-offset-4">
+              Выйти
+            </button>
+          </form>
+        </div>
 
         <TelegramPanel state={webhook} />
 
