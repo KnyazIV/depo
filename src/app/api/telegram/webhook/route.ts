@@ -27,6 +27,20 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 const ok = () => NextResponse.json({ ok: true });
 
+/**
+ * Ответ на нажатие — дело вежливости, а не условие успеха.
+ *
+ * Если он не уйдёт, а мы отдадим 500, Telegram начнёт повторять апдейт снова
+ * и снова, хотя решение уже принято. Поэтому ошибку глушим.
+ */
+async function ack(options: { id: string; text?: string; alert?: boolean }) {
+  try {
+    await answerCallbackQuery(options);
+  } catch (error) {
+    console.error("[telegram] не удалось ответить на нажатие", error);
+  }
+}
+
 type CallbackQuery = {
   id: string;
   data?: string;
@@ -68,7 +82,7 @@ export async function POST(request: Request) {
   const adminId = query.from?.id;
 
   if (typeof adminId !== "number" || !env.TELEGRAM_ADMIN_IDS.includes(adminId)) {
-    await answerCallbackQuery({
+    await ack({
       id: query.id,
       text: "Решать по заявкам могут только администраторы",
       alert: true,
@@ -79,14 +93,14 @@ export async function POST(request: Request) {
   const parsed = parseDecision(query.data ?? "");
 
   if (!parsed || !UUID_PATTERN.test(parsed.bookingId)) {
-    await answerCallbackQuery({ id: query.id, text: "Кнопка устарела" });
+    await ack({ id: query.id, text: "Кнопка устарела" });
     return ok();
   }
 
   const outcome = await decideBooking(parsed.bookingId, parsed.decision, adminId);
 
   if (!outcome.booking) {
-    await answerCallbackQuery({ id: query.id, text: "Заявка не найдена", alert: true });
+    await ack({ id: query.id, text: "Заявка не найдена", alert: true });
     return ok();
   }
 
@@ -107,7 +121,7 @@ export async function POST(request: Request) {
     }
   }
 
-  await answerCallbackQuery({
+  await ack({
     id: query.id,
     text: outcome.changed
       ? parsed.decision === "confirmed"
