@@ -7,7 +7,7 @@ import { formatPrice } from "@/domain/pricing";
 import { formatDateTime, formatDuration, formatTime } from "@/lib/time";
 import { formatPhoneMask } from "@/lib/validation/booking";
 
-import { decide } from "./actions";
+import { type WebhookState, connectBot, decide, readWebhookState } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const raw = typeof params.status === "string" ? params.status : "";
   const status = (["pending", "confirmed", "rejected"] as const).find((item) => item === raw);
 
-  const bookings = await listBookings({ status });
+  const [bookings, webhook] = await Promise.all([listBookings({ status }), readWebhookState()]);
   const timezone = "Europe/Moscow";
 
   return (
@@ -45,6 +45,8 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
       <main className="mx-auto max-w-4xl px-4 py-10">
         <h1 className="font-display text-3xl">Заявки</h1>
+
+        <TelegramPanel state={webhook} />
 
         <nav className="mt-6 flex flex-wrap gap-1.5">
           {FILTERS.map((filter) => {
@@ -140,5 +142,62 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         )}
       </main>
     </>
+  );
+}
+
+/**
+ * Состояние бота.
+ *
+ * Подписка на вебхук делается отсюда, а не локальным скриптом: сервер Vercel
+ * достучится до Telegram даже там, где локальная машина не может.
+ */
+function TelegramPanel({ state }: { state: WebhookState }) {
+  if (!state.configured) {
+    return (
+      <p className="border-line bg-panel text-ink-soft mt-6 border px-4 py-3 text-sm">
+        Бот не настроен: заполните переменные TELEGRAM_* — заявки пока видны только здесь.
+      </p>
+    );
+  }
+
+  if ("error" in state) {
+    return (
+      <div className="border-line bg-panel mt-6 border px-4 py-3 text-sm">
+        <p className="text-destructive">Telegram не отвечает: {state.error}</p>
+        <ConnectButton label="Попробовать ещё раз" />
+      </div>
+    );
+  }
+
+  const connected = state.url === state.expected;
+
+  return (
+    <div className="border-line bg-panel mt-6 space-y-2 border px-4 py-3 text-sm">
+      <p className={connected ? "text-ink" : "text-destructive"}>
+        {connected ? "Бот подключён к этому сайту." : "Бот не подключён к этому сайту."}
+      </p>
+
+      {!connected && (
+        <p className="text-ink-soft">
+          Сейчас вебхук ведёт на {state.url || "никуда"}, а нужно на {state.expected}
+        </p>
+      )}
+
+      {state.pending > 0 && (
+        <p className="text-ink-soft">Необработанных обновлений: {state.pending}</p>
+      )}
+
+      {state.lastError && <p className="text-destructive">Последняя ошибка: {state.lastError}</p>}
+
+      <ConnectButton label={connected ? "Переподключить" : "Подключить бота"} />
+    </div>
+  );
+}
+
+function ConnectButton({ label }: { label: string }) {
+  return (
+    <form action={connectBot}>
+      <button className="border-line-strong mt-1 border px-4 py-2 text-sm">{label}</button>
+    </form>
   );
 }
