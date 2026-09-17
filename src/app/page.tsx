@@ -1,5 +1,6 @@
 import { TodayBoard } from "@/components/board/board";
 import { SiteFooter } from "@/components/site/chrome";
+import { RailTrack } from "@/components/site/rail-track";
 import { getBoard } from "@/domain/availability";
 import { listResources } from "@/domain/resources";
 import { site } from "@/lib/site";
@@ -23,6 +24,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             Коворкинг, баня и квест-комната в бывшем трамвайном депо. Всё бронируется по часам.
           </p>
         </section>
+
+        <RailTrack />
 
         <TodayBoard board={board} />
 
